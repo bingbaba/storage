@@ -69,7 +69,11 @@ func (s *store) Get(ctx context.Context, key string, out interface{}) error {
 	}
 	resp, err := s.Object.Get(context.Background(), parseKey(key), opt)
 	if err != nil {
-		return err
+		if strings.Index(err.Error(), "NoSuchKey") >= 0 {
+			return storage.NewKeyNotFoundError(key, 0)
+		} else {
+			return err
+		}
 	}
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
