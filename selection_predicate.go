@@ -8,4 +8,6 @@ type SelectionPredicate struct {
 	ScrollKeepAlive string
 	ScrollId        string
 	EOF             bool
+
+	KeyOnly bool
 }

@@ -10,10 +10,15 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/bingbaba/storage"
 	"github.com/mozillazg/go-cos"
 	//"github.com/mozillazg/go-cos/debug"
+)
+
+var (
+	asyncLimit = make(chan bool, 50)
 )
 
 type store struct {
@@ -148,16 +153,38 @@ func (s *store) List(ctx context.Context, key string, sp *storage.SelectionPredi
 		return nil, err
 	}
 
-	resp := make([]interface{}, 0, len(ret.Contents))
-	for _, c := range ret.Contents {
-		new_obj := reflect.New(reflect.TypeOf(obj).Elem()).Interface()
-		err := s.Get(ctx, c.Key, new_obj)
-		if err == nil {
-			resp = append(resp, new_obj)
+	resp := make([]interface{}, len(ret.Contents))
+	if sp != nil && sp.KeyOnly {
+		for i, c := range ret.Contents {
+			resp[i] = c.Key
+		}
+
+		return resp, nil
+	} else {
+		var wg sync.WaitGroup
+		for i, c := range ret.Contents {
+			select {
+			case <-ctx.Done():
+				return resp, ctx.Err()
+			case asyncLimit <- true:
+				wg.Add(1)
+			}
+
+			go func(idx int, c_tmp cos.Object) {
+				defer func() {
+					wg.Done()
+					<-asyncLimit
+				}()
+				new_obj := reflect.New(reflect.TypeOf(obj).Elem()).Interface()
+				err := s.Get(ctx, c_tmp.Key, new_obj)
+				if err == nil {
+					resp[idx] = new_obj
+				}
+			}(i, c)
 		}
 	}
-
 	return resp, nil
+
 }
 
 func (s *store) Update(ctx context.Context, key string, resourceVersion int64, obj interface{}, ttl uint64) error {
