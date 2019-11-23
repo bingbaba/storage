@@ -182,6 +182,7 @@ func (s *store) List(ctx context.Context, key string, sp *storage.SelectionPredi
 				}
 			}(i, c)
 		}
+		wg.Wait()
 	}
 	return resp, nil
 
