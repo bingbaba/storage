@@ -7,14 +7,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/bingbaba/storage"
-	"github.com/mozillazg/go-cos"
-	//"github.com/mozillazg/go-cos/debug"
+	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
 var (
@@ -27,16 +28,17 @@ type store struct {
 }
 
 func NewStorage(conf *Config) *store {
-	url := fmt.Sprintf("https://%s-%s.cos.%s.myqcloud.com",
+	u, _ := url.Parse(fmt.Sprintf("https://%s-%s.cos.%s.myqcloud.com",
 		conf.Bucket,
 		conf.AppID,
 		conf.Region,
-	)
-	b, _ := cos.NewBaseURL(url)
+	))
+	b := &cos.BaseURL{BucketURL: u}
 
 	return &store{
 		Config: conf,
 		Client: cos.NewClient(b, &http.Client{
+			Timeout: 30 * time.Second,
 			Transport: &cos.AuthorizationTransport{
 				SecretID:  conf.SecretId,
 				SecretKey: conf.SecretKey,
