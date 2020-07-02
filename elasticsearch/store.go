@@ -182,8 +182,11 @@ func (s *store) Get(ctx context.Context, key string, out interface{}) error {
 		return storage.NewInternalError(err.Error())
 	}
 
-	err = json.Unmarshal(*resp.Source, out)
-	setResourceVersion(out, *resp.Version)
+	if out != nil {
+		err = json.Unmarshal(*resp.Source, out)
+		setResourceVersion(out, *resp.Version)
+	}
+
 	return err
 }
 

@@ -82,16 +82,20 @@ func (s *store) Get(ctx context.Context, key string, out interface{}) error {
 			return err
 		}
 	}
-	bs, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
 	resp.Body.Close()
 
-	err = json.Unmarshal(bs, out)
-	if err != nil {
-		return err
+	if out != nil {
+		bs, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(bs, out)
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
@@ -133,9 +137,6 @@ func (s *store) DeleteByQuery(ctx context.Context, key string, keyword interface
 }
 
 func (s *store) List(ctx context.Context, key string, sp *storage.SelectionPredicate, obj interface{}) ([]interface{}, error) {
-	if reflect.TypeOf(obj).Kind() != reflect.Ptr {
-		return nil, storage.NewBadRequestError("non-pointer " + reflect.TypeOf(obj).String())
-	}
 
 	opt := &cos.BucketGetOptions{
 		Prefix: parseKey(key),
@@ -163,6 +164,13 @@ func (s *store) List(ctx context.Context, key string, sp *storage.SelectionPredi
 
 		return resp, nil
 	} else {
+		if obj == nil {
+			return nil, storage.NewBadRequestError("non-pointer")
+		}
+		if reflect.TypeOf(obj).Kind() != reflect.Ptr {
+			return nil, storage.NewBadRequestError("non-pointer " + reflect.TypeOf(obj).String())
+		}
+
 		var wg sync.WaitGroup
 		for i, c := range ret.Contents {
 			select {
