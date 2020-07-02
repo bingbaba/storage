@@ -82,7 +82,7 @@ func (s *store) Get(ctx context.Context, key string, out interface{}) error {
 			return err
 		}
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	if out != nil {
 		bs, err := ioutil.ReadAll(resp.Body)
