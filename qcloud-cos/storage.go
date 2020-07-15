@@ -156,9 +156,18 @@ func (s *store) List(ctx context.Context, key string, sp *storage.SelectionPredi
 		return nil, err
 	}
 
-	resp := make([]interface{}, len(ret.Contents))
+	// U: 去掉与Prefix相同的Key
+	contents := make([]cos.Object, 0, len(ret.Contents))
+	for _, content := range ret.Contents {
+		if content.Key == opt.Prefix {
+			continue
+		}
+		contents = append(contents, content)
+	}
+
+	resp := make([]interface{}, len(contents))
 	if sp != nil && sp.KeyOnly {
-		for i, c := range ret.Contents {
+		for i, c := range contents {
 			resp[i] = c.Key
 		}
 
@@ -172,7 +181,7 @@ func (s *store) List(ctx context.Context, key string, sp *storage.SelectionPredi
 		}
 
 		var wg sync.WaitGroup
-		for i, c := range ret.Contents {
+		for i, c := range contents {
 			select {
 			case <-ctx.Done():
 				return resp, ctx.Err()
@@ -207,5 +216,5 @@ func (s *store) Upsert(ctx context.Context, key string, resourceVersion int64, u
 }
 
 func parseKey(key string) string {
-	return strings.TrimLeft(key, "/")
+	return strings.TrimPrefix(key, "/")
 }
