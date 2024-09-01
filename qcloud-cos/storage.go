@@ -117,7 +117,8 @@ func (s *store) Create(ctx context.Context, key string, obj interface{}, ttl uin
 		},
 		ACLHeaderOptions: &cos.ACLHeaderOptions{
 			//XCosACL: "public-read",
-			XCosACL: "private",
+			//XCosACL: "private",
+			XCosACL: "default",
 		},
 	}
 
