@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -100,9 +101,14 @@ func (s *store) Get(ctx context.Context, key string, out interface{}) error {
 }
 
 func (s *store) Create(ctx context.Context, key string, obj interface{}, ttl uint64) error {
-	body, err := json.Marshal(obj)
-	if err != nil {
-		return err
+	var reader io.Reader
+	reader, ok := obj.(io.Reader)
+	if !ok {
+		body, err := json.Marshal(obj)
+		if err != nil {
+			return err
+		}
+		reader = bytes.NewReader(body)
 	}
 
 	opt := &cos.ObjectPutOptions{
@@ -115,7 +121,7 @@ func (s *store) Create(ctx context.Context, key string, obj interface{}, ttl uin
 		},
 	}
 
-	_, err = s.Object.Put(ctx, parseKey(key), bytes.NewReader(body), opt)
+	_, err := s.Object.Put(ctx, parseKey(key), reader, opt)
 	return err
 }
 
