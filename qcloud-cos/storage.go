@@ -73,7 +73,7 @@ func NewConfigByEnv() *Config {
 
 func (s *store) Get(ctx context.Context, key string, out interface{}) error {
 	opt := &cos.ObjectGetOptions{
-		ResponseContentType: "application/octet-stream",
+		ResponseContentType: contentType(ctx),
 	}
 	resp, err := s.Object.Get(context.Background(), parseKey(key), opt)
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *store) Create(ctx context.Context, key string, obj interface{}, ttl uin
 
 	opt := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentType: "application/octet-stream",
+			ContentType: contentType(ctx),
 		},
 		ACLHeaderOptions: &cos.ACLHeaderOptions{
 			//XCosACL: "public-read",
@@ -223,4 +223,12 @@ func (s *store) Upsert(ctx context.Context, key string, resourceVersion int64, u
 
 func parseKey(key string) string {
 	return strings.TrimPrefix(key, "/")
+}
+
+func contentType(ctx context.Context) string {
+	if ct, ok := ctx.Value("ContentType").(string); ok {
+		return ct
+	}
+
+	return "application/octet-stream"
 }
